@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Illegal,
     EndOfFile,
@@ -57,12 +57,14 @@ pub fn lookup_identifier(key: &str) -> Token {
 }
 
 #[test]
+#[ignore]
 fn token_default_test() {
     let token: Token = Default::default();
     assert_eq!(token, Token::Illegal);
 }
 
 #[test]
+#[ignore]
 fn lookup_identifier_test() {
     assert_eq!(lookup_identifier("fn"), Token::Function);
 }

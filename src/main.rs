@@ -1,3 +1,6 @@
+#[allow(dead_code)]
+#[allow(unused_imports)]
+
 use std::io;
 use std::io::BufRead;
 use std::io::Write;
@@ -8,28 +11,40 @@ use lexer::Lexer;
 pub mod token;
 use token::Token;
 
+pub mod ast;
+use ast::Parser;
+
 fn main() {
 
-    let stdin = io::stdin();
+    let lexer = Lexer::new("
+        let x = 5;
+        let y = 10;
+        let foobar = 838383;
+    ");
+    let mut parser = Parser::new(lexer);
+    let program = parser.parse_program();
+    println!("{:?}", program);
 
-    loop {
-        print!(">> ");
-        io::stdout().flush().expect("Error flushing stdout");
+    // let stdin = io::stdin();
 
-        let mut line = String::new();
-        stdin.lock().read_line(&mut line).expect("Error reading from stdin");
+    // loop {
+    //     print!(">> ");
+    //     io::stdout().flush().expect("Error flushing stdout");
 
-        let mut lexer = Lexer::new(&line);
+    //     let mut line = String::new();
+    //     stdin.lock().read_line(&mut line).expect("Error reading from stdin");
 
-        loop {
-            let token = lexer.next_token();
-            println!("{:?}", token);
-            if token == Token::EndOfFile {
-                break;
-            }
-        }
+    //     let mut lexer = Lexer::new(&line);
 
-    }
+    //     loop {
+    //         let token = lexer.next_token();
+    //         println!("{:?}", token);
+    //         if token == Token::EndOfFile {
+    //             break;
+    //         }
+    //     }
+
+    // }
 
 }
 

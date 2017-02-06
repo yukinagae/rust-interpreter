@@ -125,6 +125,7 @@ fn is_letter(ch: char) -> bool {
 }
 
 #[test]
+#[ignore]
 fn next_token_test() {
     let input = "let five = 5;
                  let ten = 10;
