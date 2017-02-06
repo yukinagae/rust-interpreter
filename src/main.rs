@@ -20,6 +20,7 @@ fn main() {
         let x = 5;
         let y = 10;
         let foobar = 838383;
+        return 5;
     ");
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program();

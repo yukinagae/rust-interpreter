@@ -6,6 +6,9 @@ use lexer::Lexer;
 
 use token::Token;
 
+use self::Statement::LetStatement;
+use self::Statement::ReturnStatement;
+
 #[derive(Debug)]
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
@@ -45,13 +48,11 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_program(&mut self) -> Program {
-        let mut statements: Vec<LetStatement> = Vec::new();
+        let mut statements: Vec<Statement> = Vec::new();
         while self.current_token != Token::EndOfFile {
-            let stmt = self.parse_let_statement();
+            let stmt = self.parse_statement();
             match stmt {
-                Some(s) => {
-                    statements.push(s);
-                }
+                Some(s) => statements.push(s),
                 None => {},
             }
             self.next_token();
@@ -59,7 +60,15 @@ impl<'a> Parser<'a> {
         Program { statements: statements }
     }
 
-    fn parse_let_statement(&mut self) -> Option<LetStatement> {
+    fn parse_statement(&mut self) -> Option<Statement> {
+        match self.current_token {
+            Token::Let => self.parse_let_statement(),
+            Token::Return => self.parse_return_statement(),
+            _ => None,
+        }
+    }
+
+    fn parse_let_statement(&mut self) -> Option<Statement> {
         if let Token::Identifier(_) = self.peek_token {
             let name = self.peek_token.clone();
             self.next_token();
@@ -68,7 +77,7 @@ impl<'a> Parser<'a> {
             } else {
                 self.next_token();
                 let value = IdentifierExpression { token: self.current_token.clone() };
-                let stmt = LetStatement{ token: Token::Let, name: name, value: value };
+                let stmt = Statement::LetStatement{ token: Token::Let, name: name, value: value };
                 if self.peek_token_is(Token::Semicolon) {
                     self.next_token();
                 }
@@ -78,6 +87,18 @@ impl<'a> Parser<'a> {
             None
         }
     }
+
+    fn parse_return_statement(&mut self) -> Option<Statement> {
+        self.next_token();
+        let value = IdentifierExpression { token: self.current_token.clone() };
+        let stmt = Statement::ReturnStatement{token: Token::Return, value: value};
+
+        if self.peek_token_is(Token::Semicolon) {
+            self.next_token();
+        }
+
+        Some(stmt)
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -85,14 +106,17 @@ struct Node {
     token: Token
 }
 
-struct Statement {
-}
-
 #[derive(Debug, PartialEq)]
-struct LetStatement {
-    token: Token,
-    name: Token,
-    value: IdentifierExpression,
+enum Statement {
+    LetStatement {
+        token: Token,
+        name: Token,
+        value: IdentifierExpression,
+    },
+    ReturnStatement {
+        token: Token,
+        value: IdentifierExpression,
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -105,18 +129,18 @@ struct Expression {
 
 #[derive(Debug)]
 pub struct Program {
-    statements: Vec<LetStatement>
+    statements: Vec<Statement>
 }
 
 impl Program {
 
-    fn token(&self) -> Token {
-        if self.statements.len() > 0 {
-            self.statements[0].token.clone()
-        } else {
-            Token::Illegal
-        }
-    }
+    // fn token(&self) -> Token {
+    //     if self.statements.len() > 0 {
+    //         self.statements[0].token.clone()
+    //     } else {
+    //         Token::Illegal
+    //     }
+    // }
 }
 
 
@@ -133,4 +157,19 @@ fn let_statement_test() {
     assert_eq!(LetStatement{ token: Token::Let, name: Token::Identifier("x".to_string()), value: IdentifierExpression{ token: Token::Integer(5) } }, program.statements[0]);
     assert_eq!(LetStatement{ token: Token::Let, name: Token::Identifier("y".to_string()), value: IdentifierExpression{ token: Token::Integer(10) } }, program.statements[1]);
     assert_eq!(LetStatement{ token: Token::Let, name: Token::Identifier("foobar".to_string()), value: IdentifierExpression{ token: Token::Integer(838383) } }, program.statements[2]);
+}
+
+#[test]
+fn return_statement_test() {
+    let lexer = Lexer::new("
+        return 5;
+        return 10;
+        return 993322;
+    ");
+    let mut parser = Parser::new(lexer);
+    let program = parser.parse_program();
+    println!("{:?}", program);
+    assert_eq!(ReturnStatement{ token: Token::Return, value: IdentifierExpression{ token: Token::Integer(5) } }, program.statements[0]);
+    assert_eq!(ReturnStatement{ token: Token::Return, value: IdentifierExpression{ token: Token::Integer(10) } }, program.statements[1]);
+    assert_eq!(ReturnStatement{ token: Token::Return, value: IdentifierExpression{ token: Token::Integer(993322) } }, program.statements[2]);
 }
