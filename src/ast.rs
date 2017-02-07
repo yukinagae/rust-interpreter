@@ -23,8 +23,14 @@ pub enum Statement {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     IdentifierExpression {
-        token: Token
-    }
+        value: Token
+    },
+    IntegerExpression {
+        value: u32
+    },
+    BooleanExpression {
+        value: bool
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -36,5 +42,10 @@ impl Program {
 
     pub fn new(stmts: Vec<Statement>) -> Self {
         Program { statements: stmts }
+    }
+
+    // TODO for testing purpose only
+    pub fn statements(&self) -> Vec<Statement> {
+        self.statements.clone()
     }
 }
