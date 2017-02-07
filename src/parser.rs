@@ -78,7 +78,7 @@ impl<'a> Parser<'a> {
                 None
             } else {
                 self.next_token();
-                let value = IdentifierExpression { value: self.current_token.clone() };
+                let value = self.parse_expression().unwrap();
                 let stmt = LetStatement{ name: name, value: value };
                 if self.peek_token_is(Semicolon) {
                     self.next_token();
@@ -92,7 +92,7 @@ impl<'a> Parser<'a> {
 
     fn parse_return_statement(&mut self) -> Option<Statement> {
         self.next_token();
-        let value = IdentifierExpression { value: self.current_token.clone() };
+        let value = self.parse_expression().unwrap();
         let stmt = ReturnStatement{ value: value};
 
         if self.peek_token_is(Semicolon) {
@@ -222,6 +222,7 @@ fn return_statement_test() {
 }
 
 #[test]
+#[ignore]
 fn expression_statement_test() {
     let lexer = Lexer::new("
         foobar;
