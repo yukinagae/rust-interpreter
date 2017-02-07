@@ -118,7 +118,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expression(&mut self) -> Option<Expression> {
-        match self.current_token {
+        let mut left = match self.current_token {
             Identifier(_) => self.parse_identifier(),
             Integer(_) => self.parse_integer(),
             True => self.parse_true(),
@@ -126,7 +126,23 @@ impl<'a> Parser<'a> {
             Bang => self.parse_prefix(),
             Minus => self.parse_prefix(),
             _ => None,
+        };
+
+        while self.current_token != Semicolon {
+            match self.peek_token {
+                Plus => { left = self.parse_infix(left.unwrap()); },
+                Minus => { left = self.parse_infix(left.unwrap()); },
+                Asterisk => { left = self.parse_infix(left.unwrap()); },
+                Slash => { left = self.parse_infix(left.unwrap()); },
+                LowerThan => { left = self.parse_infix(left.unwrap()); },
+                GreaterThan => { left = self.parse_infix(left.unwrap()); },
+                Equal => { left = self.parse_infix(left.unwrap()); },
+                NotEqual => { left = self.parse_infix(left.unwrap()); },
+                _ => return left,
+            }
         }
+
+        left
     }
 
     fn parse_identifier(&self) -> Option<Expression> {
@@ -152,11 +168,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_prefix(&mut self) -> Option<Expression> {
-
         let prefix = self.current_token.clone();
-
-        println!("{:?}", prefix);
-
         self.next_token();
         match self.parse_expression() {
             Some(right) => {
@@ -165,8 +177,16 @@ impl<'a> Parser<'a> {
             },
             None => None,
         }
-
     }
+
+    fn parse_infix(&mut self, left: Expression) -> Option<Expression> {
+        self.next_token();
+        let operator = self.current_token.clone();
+        self.next_token();
+        let right = self.parse_expression();
+        Some(InfixExpression{ left: Box::new(left), operator: operator, right: Box::new(right.unwrap()) } )
+    }
+
 }
 
 #[test]
@@ -208,6 +228,14 @@ fn expression_statement_test() {
         5;
         !5;
         -15;
+        5 + 6;
+        5 - 6;
+        5 * 6;
+        5 / 6;
+        5 < 6;
+        5 > 6;
+        5 == 6;
+        5 != 6;
     ");
 
     let mut parser = Parser::new(lexer);
@@ -217,5 +245,12 @@ fn expression_statement_test() {
     assert_eq!(ExpressionStatement{ expression: IntegerExpression{ value: 5 } }, program.statements()[1]);
     assert_eq!(ExpressionStatement{ expression: PrefixExpression{ prefix: Bang, right: Box::new(IntegerExpression{ value: 5 }) } }, program.statements()[2]);
     assert_eq!(ExpressionStatement{ expression: PrefixExpression{ prefix: Minus, right: Box::new(IntegerExpression{ value: 15 }) } }, program.statements()[3]);
+    assert_eq!(ExpressionStatement{ expression: InfixExpression{ left: Box::new(IntegerExpression{ value: 5 }), operator: Plus, right: Box::new(IntegerExpression{ value: 6 }) } }, program.statements()[4]);
+    assert_eq!(ExpressionStatement{ expression: InfixExpression{ left: Box::new(IntegerExpression{ value: 5 }), operator: Minus, right: Box::new(IntegerExpression{ value: 6 }) } }, program.statements()[5]);
+    assert_eq!(ExpressionStatement{ expression: InfixExpression{ left: Box::new(IntegerExpression{ value: 5 }), operator: Asterisk, right: Box::new(IntegerExpression{ value: 6 }) } }, program.statements()[6]);
+    assert_eq!(ExpressionStatement{ expression: InfixExpression{ left: Box::new(IntegerExpression{ value: 5 }), operator: Slash, right: Box::new(IntegerExpression{ value: 6 }) } }, program.statements()[7]);
+    assert_eq!(ExpressionStatement{ expression: InfixExpression{ left: Box::new(IntegerExpression{ value: 5 }), operator: LowerThan, right: Box::new(IntegerExpression{ value: 6 }) } }, program.statements()[8]);
+    assert_eq!(ExpressionStatement{ expression: InfixExpression{ left: Box::new(IntegerExpression{ value: 5 }), operator: GreaterThan, right: Box::new(IntegerExpression{ value: 6 }) } }, program.statements()[9]);
+    assert_eq!(ExpressionStatement{ expression: InfixExpression{ left: Box::new(IntegerExpression{ value: 5 }), operator: Equal, right: Box::new(IntegerExpression{ value: 6 }) } }, program.statements()[10]);
+    assert_eq!(ExpressionStatement{ expression: InfixExpression{ left: Box::new(IntegerExpression{ value: 5 }), operator: NotEqual, right: Box::new(IntegerExpression{ value: 6 }) } }, program.statements()[11]);
 }
-

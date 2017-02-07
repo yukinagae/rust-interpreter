@@ -35,6 +35,11 @@ pub enum Expression {
         prefix: Token,
         right: Box<Expression>
     },
+    InfixExpression {
+        left: Box<Expression>,
+        operator: Token,
+        right: Box<Expression>
+    }
 }
 
 #[derive(Debug, Clone)]
