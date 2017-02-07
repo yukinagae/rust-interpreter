@@ -31,6 +31,10 @@ pub enum Expression {
     BooleanExpression {
         value: bool
     },
+    PrefixExpression {
+        prefix: Token,
+        right: Box<Expression>
+    },
 }
 
 #[derive(Debug, Clone)]

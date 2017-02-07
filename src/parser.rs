@@ -123,6 +123,8 @@ impl<'a> Parser<'a> {
             Integer(_) => self.parse_integer(),
             True => self.parse_true(),
             False => self.parse_false(),
+            Bang => self.parse_prefix(),
+            Minus => self.parse_prefix(),
             _ => None,
         }
     }
@@ -147,6 +149,23 @@ impl<'a> Parser<'a> {
 
     fn parse_false(&self) -> Option<Expression> {
         Some(BooleanExpression { value: false })
+    }
+
+    fn parse_prefix(&mut self) -> Option<Expression> {
+
+        let prefix = self.current_token.clone();
+
+        println!("{:?}", prefix);
+
+        self.next_token();
+        match self.parse_expression() {
+            Some(right) => {
+                let expression = PrefixExpression { prefix: prefix, right: Box::new(right) };
+                Some(expression)
+            },
+            None => None,
+        }
+
     }
 }
 
@@ -187,11 +206,16 @@ fn expression_statement_test() {
     let lexer = Lexer::new("
         foobar;
         5;
+        !5;
+        -15;
     ");
+
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program();
     println!("{:?}", program);
     assert_eq!(ExpressionStatement{ expression: IdentifierExpression{ value: Identifier("foobar".to_string()) } }, program.statements()[0]);
     assert_eq!(ExpressionStatement{ expression: IntegerExpression{ value: 5 } }, program.statements()[1]);
+    assert_eq!(ExpressionStatement{ expression: PrefixExpression{ prefix: Bang, right: Box::new(IntegerExpression{ value: 5 }) } }, program.statements()[2]);
+    assert_eq!(ExpressionStatement{ expression: PrefixExpression{ prefix: Minus, right: Box::new(IntegerExpression{ value: 15 }) } }, program.statements()[3]);
 }
 
