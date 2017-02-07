@@ -1,5 +1,5 @@
-#[allow(dead_code)]
-#[allow(unused_imports)]
+#![allow(dead_code)]
+#![allow(unused_imports)]
 
 use std::io;
 use std::io::BufRead;
@@ -12,7 +12,9 @@ pub mod token;
 use token::Token;
 
 pub mod ast;
-use ast::Parser;
+
+pub mod parser;
+use parser::Parser;
 
 fn main() {
 
