@@ -1,7 +1,9 @@
+#![allow(unused_imports)]
+#![allow(dead_code)]
+
 use lexer::Lexer;
 use token::Token;
 use ast;
-#[allow(unused_imports)]
 use ast::Statement;
 use ast::Statement::*;
 use ast::Expression;
@@ -9,14 +11,12 @@ use ast::Expression::IdentifierExpression;
 use ast::Program;
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
     current_token: Token,
     peek_token: Token,
 }
 
-#[allow(dead_code)]
 impl<'a> Parser<'a> {
     pub fn new(lexer: Lexer) -> Parser {
         let mut p = Parser { lexer: lexer, current_token: Token::Illegal, peek_token: Token::Illegal };
@@ -100,4 +100,34 @@ impl<'a> Parser<'a> {
 
         Some(stmt)
     }
+}
+
+#[test]
+fn let_statement_test() {
+    let lexer = Lexer::new("
+        let x = 5;
+        let y = 10;
+        let foobar = 838383;
+    ");
+    let mut parser = Parser::new(lexer);
+    let program = parser.parse_program();
+    println!("{:?}", program);
+    assert_eq!(LetStatement{ name: Token::Identifier("x".to_string()), value: IdentifierExpression{ token: Token::Integer(5) } }, program.statements[0]);
+    assert_eq!(LetStatement{ name: Token::Identifier("y".to_string()), value: IdentifierExpression{ token: Token::Integer(10) } }, program.statements[1]);
+    assert_eq!(LetStatement{ name: Token::Identifier("foobar".to_string()), value: IdentifierExpression{ token: Token::Integer(838383) } }, program.statements[2]);
+}
+
+#[test]
+fn return_statement_test() {
+    let lexer = Lexer::new("
+        return 5;
+        return 10;
+        return 993322;
+    ");
+    let mut parser = Parser::new(lexer);
+    let program = parser.parse_program();
+    println!("{:?}", program);
+    assert_eq!(ReturnStatement{ value: IdentifierExpression{ token: Token::Integer(5) } }, program.statements[0]);
+    assert_eq!(ReturnStatement{ value: IdentifierExpression{ token: Token::Integer(10) } }, program.statements[1]);
+    assert_eq!(ReturnStatement{ value: IdentifierExpression{ token: Token::Integer(993322) } }, program.statements[2]);
 }
