@@ -578,6 +578,9 @@ fn parse_function_expressions_test() {
 fn parse_call_expressions_test() {
     let lexer = Lexer::new("
         add(1, 2 * 3, 4 + 5);
+        a + add(b * c) + d;
+        add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8));
+        add(a + b + c * d / f + g);
     ");
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program();
@@ -595,4 +598,9 @@ fn parse_call_expressions_test() {
     } else {
         assert!(false);
     }
+
+
+    assert_eq!("((a + add((b * c))) + d)", program.statements()[1].to_string());
+    assert_eq!("add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))", program.statements()[2].to_string());
+    assert_eq!("add((((a + b) + ((c * d) / f)) + g))", program.statements()[3].to_string());
 }

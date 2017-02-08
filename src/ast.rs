@@ -51,14 +51,13 @@ impl fmt::Display for Expression {
             PrefixExpression{ ref prefix, ref right } => write!(f, "({}{})", prefix, right.to_string()),
             InfixExpression{ ref left, ref operator, ref right } => write!(f, "({} {} {})", left.to_string(), operator.to_string(), right.to_string()),
             IfExpression { ref condition, ref consequence, ref alternative } => write!(f, "(if {} {{ {} }} else {{ {:?} }})", condition.to_string(), consequence.to_string(), alternative),
-            FunctionExpression { ref parameters, ref body } => write!(f, "fn({}) {}", parameters.join(","), body.to_string()),
+            FunctionExpression { ref parameters, ref body } => write!(f, "fn({}) {}", parameters.join(", "), body.to_string()),
             CallExpression { ref name, ref arguments } => {
-                let mut exprs = String::new();
+                let mut exprs = Vec::new();
                 for a in arguments {
-                    exprs.push_str(&a.to_string());
-                    exprs.push_str(", ");
+                    exprs.push(a.to_string());
                 }
-                write!(f, "{}({})", name, exprs)
+                write!(f, "{}({})", name, exprs.join(", "))
             },
         }
     }
