@@ -126,6 +126,7 @@ impl<'a> Parser<'a> {
             Bang => self.parse_prefix(),
             Minus => self.parse_prefix(),
             LeftParenthesis => self.parse_group(),
+            If => self.parse_if(),
             _ => None,
         };
 
@@ -199,6 +200,54 @@ impl<'a> Parser<'a> {
         } else {
             None
         }
+    }
+
+    fn parse_if(&mut self) -> Option<Expression> {
+
+        if !self.expect_peek(LeftParenthesis) {
+            return None
+        }
+
+        self.next_token();
+
+        let condition = self.parse_expression(Lowest);
+
+        if !self.expect_peek(RightParenthesis) {
+            return None
+        }
+
+        if !self.expect_peek(LeftBrace) {
+            return None
+        }
+
+        let consequence = self.parse_block_statement();
+
+        if self.peek_token_is(Else) {
+            self.next_token();
+            if !self.expect_peek(LeftBrace) {
+                return None
+            } else {
+                let alternative = self.parse_block_statement();
+                return Some(IfExpression { condition: Box::new(condition.unwrap()), consequence: Box::new(consequence), alternative: Some(Box::new(alternative)) })
+            }
+        }
+
+        Some(IfExpression { condition: Box::new(condition.unwrap()), consequence: Box::new(consequence), alternative: None })
+    }
+
+    fn parse_block_statement(&mut self) -> Statement {
+        self.next_token();
+
+        let mut stmts = Vec::new();
+
+        while self.current_token != RightBrace && self.current_token != EndOfFile {
+            if let Some(stmt) = self.parse_statement() {
+                stmts.push(stmt);
+            }
+            self.next_token();
+        }
+
+        BlockStatement { statements: stmts }
     }
 
     fn peek_precedence(&self) -> Precedence {
@@ -373,3 +422,34 @@ fn parse_grouped_expressions_test() {
     assert_eq!("(!(true == true))", program.statements()[4].to_string());
 }
 
+#[test]
+// #[ignore]
+fn parse_if_test() {
+    let lexer = Lexer::new("
+        if (x < y) { x } else { y }
+    ");
+    let mut parser = Parser::new(lexer);
+    let program = parser.parse_program();
+    // println!("{:?}", program.statements()[0]);
+
+    if let ExpressionStatement {ref expression} = program.statements()[0] {
+        match *expression {
+            IfExpression{ ref condition, ref consequence, ref alternative } => {
+                assert_eq!(Box::new(InfixExpression{ left: Box::new(IdentifierExpression{value: "x".to_string()}), operator: LowerThan, right: Box::new(IdentifierExpression{value: "y".to_string()})}), *condition);
+                match *consequence {
+                    _ => {},
+                }
+                assert_eq!( Box::new(BlockStatement{ statements: vec![ExpressionStatement{ expression: IdentifierExpression{ value: "x".to_string() }}] }), *consequence);
+                match *alternative {
+                    Some(ref alt) => {
+                        assert_eq!( Box::new(BlockStatement{ statements: vec![ExpressionStatement{ expression: IdentifierExpression{ value: "y".to_string() }}] }), *alt);
+                    },
+                    None => assert!(false),
+                }
+            },
+            _ => assert!(false),
+        }
+    } else {
+        assert!(false);
+    }
+}

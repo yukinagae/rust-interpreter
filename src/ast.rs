@@ -43,6 +43,7 @@ impl fmt::Display for Expression {
             BooleanExpression{ value } => write!(f, "{}", value),
             PrefixExpression{ ref prefix, ref right } => write!(f, "({}{})", prefix, right.to_string()),
             InfixExpression{ ref left, ref operator, ref right } => write!(f, "({} {} {})", left.to_string(), operator.to_string(), right.to_string()),
+            IfExpression { ref condition, ref consequence, ref alternative } => write!(f, "(if {} {{ {} }} else {{ {:?} }})", condition.to_string(), consequence.to_string(), alternative),
         }
 
     }
@@ -67,7 +68,12 @@ pub enum Expression {
         left: Box<Expression>,
         operator: Token,
         right: Box<Expression>
-    }
+    },
+    IfExpression {
+        condition: Box<Expression>,
+        consequence: Box<Statement>,
+        alternative: Option<Box<Statement>>
+    },
 }
 
 #[derive(Debug, Clone)]
