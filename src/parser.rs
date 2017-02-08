@@ -127,6 +127,7 @@ impl<'a> Parser<'a> {
             Minus => self.parse_prefix(),
             LeftParenthesis => self.parse_group(),
             If => self.parse_if(),
+            Function => self.parse_function(),
             _ => None,
         };
 
@@ -248,6 +249,53 @@ impl<'a> Parser<'a> {
         }
 
         BlockStatement { statements: stmts }
+    }
+
+    fn parse_function(&mut self) -> Option<Expression> {
+
+        if !self.expect_peek(LeftParenthesis) {
+            return None
+        }
+
+        let parameters = self.parse_function_parameters();
+
+        if !self.expect_peek(LeftBrace) {
+            return None
+        }
+
+        let body = self.parse_block_statement();
+
+        Some(FunctionExpression{ parameters: parameters.unwrap(), body: Box::new(body) })
+    }
+
+    fn parse_function_parameters(&mut self) -> Option<Vec<String>> {
+
+        let mut parameters = Vec::new();
+
+        if self.peek_token_is(RightParenthesis) {
+            self.next_token();
+            return Some(parameters)
+        }
+
+        self.next_token();
+
+        if let Identifier(ref first) = self.current_token {
+            parameters.push(first.clone());
+        }
+
+        while self.peek_token_is(Comma) {
+            self.next_token();
+            self.next_token();
+            if let Identifier(ref param) = self.current_token {
+                parameters.push(param.clone());
+            }
+        }
+
+        if !self.expect_peek(RightParenthesis) {
+            return None
+        }
+
+        Some(parameters)
     }
 
     fn peek_precedence(&self) -> Precedence {
@@ -423,7 +471,7 @@ fn parse_grouped_expressions_test() {
 }
 
 #[test]
-// #[ignore]
+#[ignore]
 fn parse_if_test() {
     let lexer = Lexer::new("
         if (x < y) { x } else { y }
@@ -446,6 +494,31 @@ fn parse_if_test() {
                     },
                     None => assert!(false),
                 }
+            },
+            _ => assert!(false),
+        }
+    } else {
+        assert!(false);
+    }
+}
+
+
+#[test]
+#[ignore]
+fn parse_function_expressions_test() {
+    let lexer = Lexer::new("
+        fn(x, y) { x + y; }
+    ");
+    let mut parser = Parser::new(lexer);
+    let program = parser.parse_program();
+    // println!("{}", program.statements()[0]);
+    // println!("{:?}", program.statements()[0]);
+    if let ExpressionStatement {ref expression} = program.statements()[0] {
+        match *expression {
+            FunctionExpression{ ref parameters, body: _ } => {
+                assert_eq!(2, parameters.len());
+                assert_eq!("x".to_string(), parameters[0]);
+                assert_eq!("y".to_string(), parameters[1]);
             },
             _ => assert!(false),
         }

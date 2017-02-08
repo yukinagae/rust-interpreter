@@ -29,7 +29,14 @@ impl fmt::Display for Statement {
             LetStatement{ ref name, ref value } => write!(f, "let {} = {}", name, value.to_string()),
             ReturnStatement{ ref value } => write!(f, "return {}", value.to_string()),
             ExpressionStatement{ ref expression } => write!(f, "{}", expression.to_string()),
-            BlockStatement{ statements: _ } => write!(f, "{:?}", self),
+            BlockStatement{ ref statements } => {
+                let mut stmts = String::new();
+                for s in statements {
+                    stmts.push_str(&s.to_string());
+                    stmts.push_str("; ");
+                }
+                write!(f, "{{ {} }}", stmts)
+            },
         }
 
     }
@@ -44,8 +51,8 @@ impl fmt::Display for Expression {
             PrefixExpression{ ref prefix, ref right } => write!(f, "({}{})", prefix, right.to_string()),
             InfixExpression{ ref left, ref operator, ref right } => write!(f, "({} {} {})", left.to_string(), operator.to_string(), right.to_string()),
             IfExpression { ref condition, ref consequence, ref alternative } => write!(f, "(if {} {{ {} }} else {{ {:?} }})", condition.to_string(), consequence.to_string(), alternative),
+            FunctionExpression { ref parameters, ref body } => write!(f, "fn({}) {}", parameters.join(","), body.to_string()),
         }
-
     }
 }
 
@@ -73,6 +80,10 @@ pub enum Expression {
         condition: Box<Expression>,
         consequence: Box<Statement>,
         alternative: Option<Box<Statement>>
+    },
+    FunctionExpression {
+        parameters: Vec<String>,
+        body: Box<Statement>
     },
 }
 
