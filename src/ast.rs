@@ -52,6 +52,14 @@ impl fmt::Display for Expression {
             InfixExpression{ ref left, ref operator, ref right } => write!(f, "({} {} {})", left.to_string(), operator.to_string(), right.to_string()),
             IfExpression { ref condition, ref consequence, ref alternative } => write!(f, "(if {} {{ {} }} else {{ {:?} }})", condition.to_string(), consequence.to_string(), alternative),
             FunctionExpression { ref parameters, ref body } => write!(f, "fn({}) {}", parameters.join(","), body.to_string()),
+            CallExpression { ref name, ref arguments } => {
+                let mut exprs = String::new();
+                for a in arguments {
+                    exprs.push_str(&a.to_string());
+                    exprs.push_str(", ");
+                }
+                write!(f, "{}({})", name, exprs)
+            },
         }
     }
 }
@@ -84,6 +92,10 @@ pub enum Expression {
     FunctionExpression {
         parameters: Vec<String>,
         body: Box<Statement>
+    },
+    CallExpression {
+        name: String,
+        arguments: Vec<Expression>
     },
 }
 

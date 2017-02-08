@@ -141,6 +141,7 @@ impl<'a> Parser<'a> {
                 GreaterThan => { left = self.parse_infix(left.unwrap()); },
                 Equal => { left = self.parse_infix(left.unwrap()); },
                 NotEqual => { left = self.parse_infix(left.unwrap()); },
+                LeftParenthesis => { left = self.parse_call(left.unwrap()); },
                 _ => return left,
             }
         }
@@ -298,12 +299,55 @@ impl<'a> Parser<'a> {
         Some(parameters)
     }
 
+    fn parse_call(&mut self, left: Expression) -> Option<Expression> {
+        if let IdentifierExpression { value } = left {
+            if let Some(arguments) = self.parse_call_arguments() {
+                Some(CallExpression{ name: value, arguments: arguments } )
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn parse_call_arguments(&mut self) -> Option<Vec<Expression>> {
+        let mut arguments = Vec::new();
+
+        if self.peek_token_is(RightParenthesis) {
+            self.next_token();
+            return Some(arguments)
+        }
+
+        self.next_token();
+        self.next_token();
+
+        if let Some(first) = self.parse_expression(Lowest) {
+            arguments.push(first);
+        }
+
+        while self.peek_token_is(Comma) {
+            self.next_token();
+            self.next_token();
+            if let Some(arg) = self.parse_expression(Lowest) {
+                arguments.push(arg);
+            }
+        }
+
+        if !self.expect_peek(RightParenthesis) {
+            return None
+        }
+
+        Some(arguments)
+    }
+
     fn peek_precedence(&self) -> Precedence {
         match self.peek_token {
             Equal | NotEqual => Equals,
             LowerThan | GreaterThan => LessGreater,
             Plus | Minus => Sum,
             Slash | Asterisk => Product,
+            LeftParenthesis => Call,
             _ => Lowest,
         }
     }
@@ -314,6 +358,7 @@ impl<'a> Parser<'a> {
             LowerThan | GreaterThan => LessGreater,
             Plus | Minus => Sum,
             Slash | Asterisk => Product,
+            LeftParenthesis => Call,
             _ => Lowest,
         }
     }
@@ -328,6 +373,7 @@ pub enum Precedence {
     Sum,
     Product,
     Prefix,
+    Call,
 }
 
 #[test]
@@ -519,6 +565,30 @@ fn parse_function_expressions_test() {
                 assert_eq!(2, parameters.len());
                 assert_eq!("x".to_string(), parameters[0]);
                 assert_eq!("y".to_string(), parameters[1]);
+            },
+            _ => assert!(false),
+        }
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+// #[ignore]
+fn parse_call_expressions_test() {
+    let lexer = Lexer::new("
+        add(1, 2 * 3, 4 + 5);
+    ");
+    let mut parser = Parser::new(lexer);
+    let program = parser.parse_program();
+    // println!("{:?}", program.statements()[0]);
+    // println!("{}", program.statements()[0]);
+
+    if let ExpressionStatement {ref expression} = program.statements()[0] {
+        match *expression {
+            CallExpression{ ref name, ref arguments } => {
+                assert_eq!("add".to_string(), *name);
+                assert_eq!(3, arguments.len());
             },
             _ => assert!(false),
         }
