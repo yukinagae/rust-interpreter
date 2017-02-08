@@ -19,14 +19,18 @@ use parser::Parser;
 fn main() {
 
     let lexer = Lexer::new("
-        let x = 5;
+        let x = 1 != 2;
         let y = 10;
         let foobar = 838383;
         return 5;
     ");
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program();
-    println!("{:?}", program);
+    println!("{:?}", program.statements()[0].to_string());
+    println!("{:?}", program.statements()[1].to_string());
+    println!("{:?}", program.statements()[2].to_string());
+    println!("{:?}", program.statements()[3].to_string());
+    // println!("{:?}", program.statements()[0]);
 
     // let stdin = io::stdin();
 

@@ -71,15 +71,14 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_let_statement(&mut self) -> Option<Statement> {
-        if let Identifier(_) = self.peek_token {
-            let name = self.peek_token.clone();
+        if let Identifier(name) = self.peek_token.clone() {
             self.next_token();
             if !self.expect_peek(Token::Assign) {
                 None
             } else {
                 self.next_token();
                 let value = self.parse_expression().unwrap();
-                let stmt = LetStatement{ name: name, value: value };
+                let stmt = LetStatement{ name: name.clone(), value: value };
                 if self.peek_token_is(Semicolon) {
                     self.next_token();
                 }
@@ -147,7 +146,7 @@ impl<'a> Parser<'a> {
 
     fn parse_identifier(&self) -> Option<Expression> {
         match self.current_token {
-            ref token@Identifier(_) => Some(IdentifierExpression { value: token.clone() }),
+            Identifier(ref value) => Some(IdentifierExpression { value: value.clone() }),
             _ => None,
         }
     }
@@ -200,9 +199,9 @@ fn let_statement_test() {
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program();
     println!("{:?}", program);
-    assert_eq!(LetStatement{ name: Identifier("x".to_string()), value: IntegerExpression{ value: 5 } }, program.statements()[0]);
-    assert_eq!(LetStatement{ name: Identifier("y".to_string()), value: IntegerExpression{ value: 10 } }, program.statements()[1]);
-    assert_eq!(LetStatement{ name: Identifier("foobar".to_string()), value: IntegerExpression{ value: 838383 } }, program.statements()[2]);
+    assert_eq!(LetStatement{ name: "x".to_string(), value: IntegerExpression{ value: 5 } }, program.statements()[0]);
+    assert_eq!(LetStatement{ name: "y".to_string(), value: IntegerExpression{ value: 10 } }, program.statements()[1]);
+    assert_eq!(LetStatement{ name: "foobar".to_string(), value: IntegerExpression{ value: 838383 } }, program.statements()[2]);
 }
 
 #[test]
@@ -242,7 +241,7 @@ fn expression_statement_test() {
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program();
     println!("{:?}", program);
-    assert_eq!(ExpressionStatement{ expression: IdentifierExpression{ value: Identifier("foobar".to_string()) } }, program.statements()[0]);
+    assert_eq!(ExpressionStatement{ expression: "foobar".to_string() }, program.statements()[0]);
     assert_eq!(ExpressionStatement{ expression: IntegerExpression{ value: 5 } }, program.statements()[1]);
     assert_eq!(ExpressionStatement{ expression: PrefixExpression{ prefix: Bang, right: Box::new(IntegerExpression{ value: 5 }) } }, program.statements()[2]);
     assert_eq!(ExpressionStatement{ expression: PrefixExpression{ prefix: Minus, right: Box::new(IntegerExpression{ value: 15 }) } }, program.statements()[3]);
