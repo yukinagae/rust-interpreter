@@ -121,7 +121,7 @@ impl fmt::Display for Program {
         let ref statements = self.statements;
         for s in statements {
             stmts.push_str(&s.to_string());
-            stmts.push_str("; ");
+            // stmts.push_str("; ");
         }
         write!(f, "{}", stmts)
     }

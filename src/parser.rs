@@ -574,7 +574,7 @@ fn parse_function_expressions_test() {
 }
 
 #[test]
-// #[ignore]
+#[ignore]
 fn parse_call_expressions_test() {
     let lexer = Lexer::new("
         add(1, 2 * 3, 4 + 5);
