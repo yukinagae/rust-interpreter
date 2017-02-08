@@ -10,6 +10,7 @@ use ast::Statement::*;
 use ast::Expression;
 use ast::Expression::*;
 use ast::Program;
+use self::Precedence::*;
 
 #[derive(Debug)]
 pub struct Parser<'a> {
@@ -77,7 +78,7 @@ impl<'a> Parser<'a> {
                 None
             } else {
                 self.next_token();
-                let value = self.parse_expression().unwrap();
+                let value = self.parse_expression(Lowest).unwrap();
                 let stmt = LetStatement{ name: name.clone(), value: value };
                 if self.peek_token_is(Semicolon) {
                     self.next_token();
@@ -91,7 +92,7 @@ impl<'a> Parser<'a> {
 
     fn parse_return_statement(&mut self) -> Option<Statement> {
         self.next_token();
-        let value = self.parse_expression().unwrap();
+        let value = self.parse_expression(Lowest).unwrap();
         let stmt = ReturnStatement{ value: value};
 
         if self.peek_token_is(Semicolon) {
@@ -102,7 +103,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expression_statement(&mut self) -> Option<Statement> {
-        let expression = self.parse_expression();
+        let expression = self.parse_expression(Lowest);
         match expression {
             None => return None,
             Some(_) => {},
@@ -116,7 +117,7 @@ impl<'a> Parser<'a> {
         Some(stmt)
     }
 
-    fn parse_expression(&mut self) -> Option<Expression> {
+    fn parse_expression(&mut self, precedence: Precedence) -> Option<Expression> {
         let mut left = match self.current_token {
             Identifier(_) => self.parse_identifier(),
             Integer(_) => self.parse_integer(),
@@ -127,7 +128,7 @@ impl<'a> Parser<'a> {
             _ => None,
         };
 
-        while self.current_token != Semicolon {
+        while self.current_token != Semicolon && (precedence.clone() as i32) < (self.peek_precedence() as i32) {
             match self.peek_token {
                 Plus => { left = self.parse_infix(left.unwrap()); },
                 Minus => { left = self.parse_infix(left.unwrap()); },
@@ -169,7 +170,7 @@ impl<'a> Parser<'a> {
     fn parse_prefix(&mut self) -> Option<Expression> {
         let prefix = self.current_token.clone();
         self.next_token();
-        match self.parse_expression() {
+        match self.parse_expression(Prefix) {
             Some(right) => {
                 let expression = PrefixExpression { prefix: prefix, right: Box::new(right) };
                 Some(expression)
@@ -181,11 +182,42 @@ impl<'a> Parser<'a> {
     fn parse_infix(&mut self, left: Expression) -> Option<Expression> {
         self.next_token();
         let operator = self.current_token.clone();
+        let precedence = self.current_precedence();
         self.next_token();
-        let right = self.parse_expression();
+        let right = self.parse_expression(precedence);
         Some(InfixExpression{ left: Box::new(left), operator: operator, right: Box::new(right.unwrap()) } )
     }
 
+    fn peek_precedence(&self) -> Precedence {
+        match self.peek_token {
+            Equal | NotEqual => Equals,
+            LowerThan | GreaterThan => LessGreater,
+            Plus | Minus => Sum,
+            Slash | Asterisk => Product,
+            _ => Lowest,
+        }
+    }
+
+    fn current_precedence(&self) -> Precedence {
+        match self.current_token {
+            Equal | NotEqual => Equals,
+            LowerThan | GreaterThan => LessGreater,
+            Plus | Minus => Sum,
+            Slash | Asterisk => Product,
+            _ => Lowest,
+        }
+    }
+
+}
+
+#[derive(Debug, Clone)]
+pub enum Precedence {
+    Lowest,
+    Equals,
+    LessGreater,
+    Sum,
+    Product,
+    Prefix,
 }
 
 #[test]
@@ -241,7 +273,7 @@ fn expression_statement_test() {
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program();
     println!("{:?}", program);
-    assert_eq!(ExpressionStatement{ expression: "foobar".to_string() }, program.statements()[0]);
+    assert_eq!(ExpressionStatement{ expression: IdentifierExpression{ value: "foobar".to_string() } }, program.statements()[0]);
     assert_eq!(ExpressionStatement{ expression: IntegerExpression{ value: 5 } }, program.statements()[1]);
     assert_eq!(ExpressionStatement{ expression: PrefixExpression{ prefix: Bang, right: Box::new(IntegerExpression{ value: 5 }) } }, program.statements()[2]);
     assert_eq!(ExpressionStatement{ expression: PrefixExpression{ prefix: Minus, right: Box::new(IntegerExpression{ value: 15 }) } }, program.statements()[3]);
@@ -253,4 +285,40 @@ fn expression_statement_test() {
     assert_eq!(ExpressionStatement{ expression: InfixExpression{ left: Box::new(IntegerExpression{ value: 5 }), operator: GreaterThan, right: Box::new(IntegerExpression{ value: 6 }) } }, program.statements()[9]);
     assert_eq!(ExpressionStatement{ expression: InfixExpression{ left: Box::new(IntegerExpression{ value: 5 }), operator: Equal, right: Box::new(IntegerExpression{ value: 6 }) } }, program.statements()[10]);
     assert_eq!(ExpressionStatement{ expression: InfixExpression{ left: Box::new(IntegerExpression{ value: 5 }), operator: NotEqual, right: Box::new(IntegerExpression{ value: 6 }) } }, program.statements()[11]);
+}
+
+#[test]
+fn parse_operator_precedence_test() {
+    let lexer = Lexer::new("
+        -a * b;
+        !-a;
+        a + b + c;
+        a + b - c;
+        a * b * c;
+        a * b / c;
+        a + b / c;
+        a + b * c + d / e - f;
+        5 > 4 == 3 < 4;
+        5 < 4 != 3 > 4;
+        3 + 4 * 5 == 3 * 1 + 4 * 5;
+        3 + 4 * 5 == 3 * 1 + 4 * 5;
+        3 + 4; -5 * 5;
+    ");
+    let mut parser = Parser::new(lexer);
+    let program = parser.parse_program();
+    assert_eq!("((-a) * b)", program.statements()[0].to_string());
+    assert_eq!("(!(-a))", program.statements()[1].to_string());
+    assert_eq!("((a + b) + c)", program.statements()[2].to_string());
+    assert_eq!("((a + b) - c)", program.statements()[3].to_string());
+    assert_eq!("((a * b) * c)", program.statements()[4].to_string());
+    assert_eq!("((a * b) / c)", program.statements()[5].to_string());
+    assert_eq!("(a + (b / c))", program.statements()[6].to_string());
+
+    assert_eq!("(((a + (b * c)) + (d / e)) - f)", program.statements()[7].to_string());
+    assert_eq!("((5 > 4) == (3 < 4))", program.statements()[8].to_string());
+    assert_eq!("((5 < 4) != (3 > 4))", program.statements()[9].to_string());
+    assert_eq!("((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))", program.statements()[10].to_string());
+    assert_eq!("((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))", program.statements()[11].to_string());
+    assert_eq!("(3 + 4)", program.statements()[12].to_string());
+    assert_eq!("((-5) * 5)", program.statements()[13].to_string());
 }

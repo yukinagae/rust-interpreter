@@ -26,9 +26,9 @@ pub enum Statement {
 impl fmt::Display for Statement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            LetStatement{ name: ref name, value: ref value } => write!(f, "let {} = {};", name, value.to_string()),
-            ReturnStatement{ value: ref value } => write!(f, "return {};", value.to_string()),
-            ExpressionStatement{ expression: _ } => write!(f, "{:?}", self),
+            LetStatement{ name: ref name, value: ref value } => write!(f, "let {} = {}", name, value.to_string()),
+            ReturnStatement{ value: ref value } => write!(f, "return {}", value.to_string()),
+            ExpressionStatement{ expression: ref expression } => write!(f, "{}", expression.to_string()),
             BlockStatement{ statements: _ } => write!(f, "{:?}", self),
         }
 
