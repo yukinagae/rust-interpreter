@@ -114,3 +114,15 @@ impl Program {
         self.statements.clone()
     }
 }
+
+impl fmt::Display for Program {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut stmts = String::new();
+        let ref statements = self.statements;
+        for s in statements {
+            stmts.push_str(&s.to_string());
+            stmts.push_str("; ");
+        }
+        write!(f, "{}", stmts)
+    }
+}

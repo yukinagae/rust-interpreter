@@ -18,40 +18,21 @@ use parser::Parser;
 
 fn main() {
 
-    let lexer = Lexer::new("
-        let x = 1 != 2;
-        let y = 10;
-        let foobar = 838383;
-        return 5;
-    ");
-    let mut parser = Parser::new(lexer);
-    let program = parser.parse_program();
-    println!("{:?}", program.statements()[0].to_string());
-    println!("{:?}", program.statements()[1].to_string());
-    println!("{:?}", program.statements()[2].to_string());
-    println!("{:?}", program.statements()[3].to_string());
-    // println!("{:?}", program.statements()[0]);
+    let stdin = io::stdin();
 
-    // let stdin = io::stdin();
+    loop {
+        print!(">> ");
+        io::stdout().flush().expect("Error flushing stdout");
 
-    // loop {
-    //     print!(">> ");
-    //     io::stdout().flush().expect("Error flushing stdout");
+        let mut line = String::new();
+        stdin.lock().read_line(&mut line).expect("Error reading from stdin");
 
-    //     let mut line = String::new();
-    //     stdin.lock().read_line(&mut line).expect("Error reading from stdin");
+        let mut lexer = Lexer::new(&line);
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
 
-    //     let mut lexer = Lexer::new(&line);
-
-    //     loop {
-    //         let token = lexer.next_token();
-    //         println!("{:?}", token);
-    //         if token == Token::EndOfFile {
-    //             break;
-    //         }
-    //     }
-
-    // }
+        println!("{}", program);
+    }
 
 }
 
