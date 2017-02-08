@@ -125,6 +125,7 @@ impl<'a> Parser<'a> {
             False => self.parse_false(),
             Bang => self.parse_prefix(),
             Minus => self.parse_prefix(),
+            LeftParenthesis => self.parse_group(),
             _ => None,
         };
 
@@ -186,6 +187,18 @@ impl<'a> Parser<'a> {
         self.next_token();
         let right = self.parse_expression(precedence);
         Some(InfixExpression{ left: Box::new(left), operator: operator, right: Box::new(right.unwrap()) } )
+    }
+
+    fn parse_group(&mut self) -> Option<Expression> {
+        self.next_token();
+
+        let expression = self.parse_expression(Lowest);
+
+        if self.expect_peek(RightParenthesis) {
+            expression
+        } else {
+            None
+        }
     }
 
     fn peek_precedence(&self) -> Precedence {
@@ -325,6 +338,7 @@ fn parse_operator_precedence_test() {
 }
 
 #[test]
+#[ignore]
 fn parse_operator_boolean_test() {
     let lexer = Lexer::new("
         true;
@@ -339,3 +353,23 @@ fn parse_operator_boolean_test() {
     assert_eq!("((3 > 5) == false)", program.statements()[2].to_string());
     assert_eq!("((3 < 5) == true)", program.statements()[3].to_string());
 }
+
+#[test]
+#[ignore]
+fn parse_grouped_expressions_test() {
+    let lexer = Lexer::new("
+        1 + (2 + 3) + 4;
+        (5 + 5) * 2;
+        2 / (5 + 5);
+        -(5 + 5);
+        !(true == true);
+    ");
+    let mut parser = Parser::new(lexer);
+    let program = parser.parse_program();
+    assert_eq!("((1 + (2 + 3)) + 4)", program.statements()[0].to_string());
+    assert_eq!("((5 + 5) * 2)", program.statements()[1].to_string());
+    assert_eq!("(2 / (5 + 5))", program.statements()[2].to_string());
+    assert_eq!("(-(5 + 5))", program.statements()[3].to_string());
+    assert_eq!("(!(true == true))", program.statements()[4].to_string());
+}
+
