@@ -4,7 +4,7 @@
 use std::fmt;
 use self::Object::*;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Object {
     Int(i64),
     Str(String),
